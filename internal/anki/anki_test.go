@@ -169,6 +169,28 @@ func TestParsePrefersAnki21(t *testing.T) {
 	}
 }
 
+func TestFieldsToWordExtractsPhoneticFromHTML(t *testing.T) {
+	w := fieldsToWord([]string{
+		"above",
+		"<div><span>[əˈbʌv]</span><span>(中高 893/733 -K4)</span></div>",
+		"prep. 在…上面",
+		"[sound:above.mp3]",
+	}, map[string]string{"above.mp3": "/tmp/above.mp3"})
+
+	if w.Phonetic != "əˈbʌv" {
+		t.Errorf("Phonetic = %q, 期望 əˈbʌv", w.Phonetic)
+	}
+	if w.Audio != "/tmp/above.mp3" {
+		t.Errorf("Audio = %q, 期望 /tmp/above.mp3", w.Audio)
+	}
+}
+
+func TestExtractPhoneticIgnoresNonPhoneticSlash(t *testing.T) {
+	if got := extractPhonetic("<span>(中高 893/733 -K4)</span>"); got != "" {
+		t.Errorf("extractPhonetic 返回 %q，期望空", got)
+	}
+}
+
 func TestClean(t *testing.T) {
 	cases := map[string]string{
 		"<b>hello</b>":      "hello",

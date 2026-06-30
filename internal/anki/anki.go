@@ -10,6 +10,7 @@ import (
 	"archive/zip"
 	"database/sql"
 	"encoding/json"
+	"html"
 	"io"
 	"os"
 	"path/filepath"
@@ -30,7 +31,7 @@ type Result struct {
 var (
 	htmlTag    = regexp.MustCompile(`<[^>]+>`)
 	soundTag   = regexp.MustCompile(`\[sound:([^\]]+)\]`)
-	phoneticRe = regexp.MustCompile(`/[^/]+/|\[[^\]]+\]`)
+	phoneticRe = regexp.MustCompile(`/([^/\s][^/]*)/|\[([^\]\s][^\]]*)\]`)
 	spaceRe    = regexp.MustCompile(`\s+`)
 )
 
@@ -237,8 +238,8 @@ func fieldsToWord(fields []string, audioPaths map[string]string) model.Word {
 		}
 		// 提取音标（首次出现 /.../ 或 [...]）
 		if w.Phonetic == "" {
-			if m := phoneticRe.FindString(raw); m != "" {
-				w.Phonetic = strings.Trim(m, "/[]")
+			if p := extractPhonetic(raw); p != "" {
+				w.Phonetic = p
 				continue
 			}
 		}
@@ -246,6 +247,35 @@ func fieldsToWord(fields []string, audioPaths map[string]string) model.Word {
 	}
 	w.Definition = strings.Join(defParts, "\n")
 	return w
+}
+
+// extractPhonetic 从字段中提取音标，跳过 [sound:...] 和普通比例/路径里的斜杠。
+func extractPhonetic(s string) string {
+	s = soundTag.ReplaceAllString(s, "")
+	s = htmlTag.ReplaceAllString(s, " ")
+	s = html.UnescapeString(s)
+	s = spaceRe.ReplaceAllString(s, " ")
+
+	for _, m := range phoneticRe.FindAllStringSubmatch(s, -1) {
+		p := strings.TrimSpace(m[1])
+		if p == "" {
+			p = strings.TrimSpace(m[2])
+		}
+		if isPhonetic(p) {
+			return p
+		}
+	}
+	return ""
+}
+
+// isPhonetic 判断候选文本是否像音标。
+func isPhonetic(s string) bool {
+	for _, r := range s {
+		if strings.ContainsRune("ˈˌəɪʊʌæɑɒɔɜɚɝθðʃʒŋɡːˑ", r) {
+			return true
+		}
+	}
+	return false
 }
 
 // clean 去除 HTML 标签、sound 标签并规整空白。
