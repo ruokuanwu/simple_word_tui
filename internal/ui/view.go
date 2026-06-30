@@ -37,6 +37,23 @@ func (m Model) center(body string) string {
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, body)
 }
 
+// box 返回一个自适应终端最大宽高的边框样式。
+func (m Model) box() lipgloss.Style {
+	s := boxStyle
+	if m.width > 0 {
+		// 减去边框占用的宽度
+		if w := m.width - 2; w > 0 {
+			s = s.Width(w)
+		}
+	}
+	if m.height > 0 {
+		if h := m.height - 2; h > 0 {
+			s = s.Height(h)
+		}
+	}
+	return s
+}
+
 func (m Model) viewDeckList() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("📚 我的单词本"))
@@ -72,7 +89,7 @@ func (m Model) viewDeckList() string {
 
 	help := "↑/↓ 选择 · 空格 背单词 · enter 设置/导入 · q 退出"
 	b.WriteString(helpStyle.Render("\n" + help))
-	return boxStyle.Render(b.String())
+	return m.box().Render(b.String())
 }
 
 func (m Model) viewImport() string {
@@ -82,7 +99,7 @@ func (m Model) viewImport() string {
 	b.WriteString(m.input.View())
 	b.WriteString("\n")
 	b.WriteString(helpStyle.Render("\nenter 确认导入 · esc 取消"))
-	return boxStyle.Render(b.String())
+	return m.box().Render(b.String())
 }
 
 func (m Model) viewStudy() string {
@@ -125,7 +142,7 @@ func (m Model) viewStudy() string {
 
 	help := "d 掌握 · s 释义 · a 上一个 · 空格 跳过 · esc 返回"
 	b.WriteString(helpStyle.Render("\n\n" + help))
-	return boxStyle.Width(50).Render(b.String())
+	return m.box().Render(b.String())
 }
 
 func (m Model) viewSettings() string {
@@ -156,7 +173,7 @@ func (m Model) viewSettings() string {
 	}
 
 	b.WriteString(helpStyle.Render("\n↑/↓ 选择 · enter 确认 · esc 返回"))
-	return boxStyle.Render(b.String())
+	return m.box().Render(b.String())
 }
 
 func (m Model) viewCongrats() string {
@@ -178,5 +195,5 @@ func (m Model) viewDeleteConfirm() string {
 	b.WriteString(mutedStyle.Render("此操作不可恢复。"))
 	b.WriteString("\n\n")
 	b.WriteString(mutedStyle.Render("y 确认删除 · n 取消"))
-	return boxStyle.Render(b.String())
+	return m.box().Render(b.String())
 }
