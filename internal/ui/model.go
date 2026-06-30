@@ -18,12 +18,12 @@ import (
 type screen int
 
 const (
-	screenDeckList screen = iota // 主界面：单词本列表
-	screenImport                 // 导入：输入 apkg 路径
-	screenStudy                  // 背单词
-	screenSettings               // 单词本设置
-	screenCongrats               // 祝贺框
-	screenDeleteConfirm          // 删除确认
+	screenDeckList      screen = iota // 主界面：单词本列表
+	screenImport                      // 导入：输入 apkg 路径
+	screenStudy                       // 背单词
+	screenSettings                    // 单词本设置
+	screenCongrats                    // 祝贺框
+	screenDeleteConfirm               // 删除确认
 )
 
 // roundSize 是每一轮抽取的单词数。
@@ -31,7 +31,7 @@ const roundSize = 7
 
 // Model 是顶层 bubbletea 模型。
 type Model struct {
-	store  *store.Store
+	store    *store.Store
 	mediaDir string
 
 	screen screen
@@ -48,14 +48,15 @@ type Model struct {
 	input textinput.Model
 
 	// 背单词
-	studyDeck   model.Deck
-	round       []model.Word
-	roundIdx    int
-	showDef     bool
+	studyDeck model.Deck
+	round     []model.Word
+	roundIdx  int
+	showDef   bool
+	defScroll int
 
 	// 设置
-	settingsDeck  model.Deck
-	settingsStats model.DeckStats
+	settingsDeck   model.Deck
+	settingsStats  model.DeckStats
 	settingsCursor int // 0: 开始学习, 1: 删除单词本
 }
 
@@ -190,6 +191,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.round = msg.words
 		m.roundIdx = 0
 		m.showDef = false
+		m.defScroll = 0
 		if len(m.round) == 0 {
 			m.status = "该单词本暂无单词"
 			m.screen = screenDeckList
@@ -314,11 +316,23 @@ func (m Model) keyStudy(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, loadDecksCmd(m.store)
 	case "s": // 查看完整释义
 		m.showDef = true
+		m.defScroll = 0
+		return m, nil
+	case "up", "k": // 释义向上滚动
+		if m.showDef && m.defScroll > 0 {
+			m.defScroll--
+		}
+		return m, nil
+	case "down", "j": // 释义向下滚动
+		if m.showDef && m.defScroll < m.maxDefScroll() {
+			m.defScroll++
+		}
 		return m, nil
 	case "a": // 上一个
 		if m.roundIdx > 0 {
 			m.roundIdx--
 			m.showDef = false
+			m.defScroll = 0
 			return m, playCurrentCmd(m)
 		}
 		return m, nil
@@ -336,6 +350,7 @@ func (m Model) keyStudy(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // advance 前进到下一个未掌握的单词；若本轮全部掌握则弹出祝贺框。
 func (m Model) advance(extra tea.Cmd) (tea.Model, tea.Cmd) {
 	m.showDef = false
+	m.defScroll = 0
 	// 从当前位置向后寻找下一个未掌握单词，循环回到开头。
 	n := len(m.round)
 	for i := 1; i <= n; i++ {
