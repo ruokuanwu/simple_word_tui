@@ -90,6 +90,10 @@ func (p studyPage) Update(msg tea.Msg) (page, tea.Cmd) {
 }
 
 func (p studyPage) handleStudyKey(msg tea.KeyMsg) (page, tea.Cmd) {
+	if len(p.round) == 0 {
+		return p, nil
+	}
+
 	switch msg.String() {
 	case "esc", "q":
 		return p, navigate(newDeckListPage(p.common))
@@ -159,6 +163,10 @@ func (p studyPage) View() string {
 }
 
 func (p studyPage) viewStudy() string {
+	if len(p.round) == 0 {
+		return p.center(p.box().Render(mutedStyle.Render("正在加载单词...")))
+	}
+
 	w := p.round[p.roundIdx]
 	var b strings.Builder
 
