@@ -23,8 +23,8 @@ import (
 
 // Result 是一次解析的结果。
 type Result struct {
-	Name  string        // 单词本名（取自文件名）
-	Words []model.Word  // 解析出的单词
+	Name  string       // 单词本名（取自文件名）
+	Words []model.Word // 解析出的单词
 }
 
 var (
@@ -97,31 +97,45 @@ func readMediaMap(zr *zip.ReadCloser) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-// extractAnki2 将 collection.anki2 解压到临时文件，返回路径与清理函数。
+// extractAnki2 将集合数据库解压到临时文件，返回路径与清理函数。
+//
+// 现代 .apkg（schema 11+）通常同时包含 collection.anki2 与 collection.anki21，
+// 其中 .anki2 只是为兼容旧版保留的空占位库，.anki21 才是真正的数据库，
+// 因此必须优先选用 .anki21，否则会导入到空库（0 个单词）。
 func extractAnki2(zr *zip.ReadCloser) (string, func(), error) {
+	var chosen *zip.File
 	for _, f := range zr.File {
-		if f.Name == "collection.anki2" || f.Name == "collection.anki21" {
-			rc, err := f.Open()
-			if err != nil {
-				return "", nil, err
+		switch f.Name {
+		case "collection.anki21":
+			chosen = f // 最高优先级，直接选中
+		case "collection.anki2":
+			if chosen == nil {
+				chosen = f // 仅在没有 .anki21 时作为回退
 			}
-			defer rc.Close()
-
-			tmp, err := os.CreateTemp("", "anki-*.db")
-			if err != nil {
-				return "", nil, err
-			}
-			if _, err := io.Copy(tmp, rc); err != nil {
-				tmp.Close()
-				os.Remove(tmp.Name())
-				return "", nil, err
-			}
-			tmp.Close()
-			path := tmp.Name()
-			return path, func() { os.Remove(path) }, nil
 		}
 	}
-	return "", nil, os.ErrNotExist
+	if chosen == nil {
+		return "", nil, os.ErrNotExist
+	}
+
+	rc, err := chosen.Open()
+	if err != nil {
+		return "", nil, err
+	}
+	defer rc.Close()
+
+	tmp, err := os.CreateTemp("", "anki-*.db")
+	if err != nil {
+		return "", nil, err
+	}
+	if _, err := io.Copy(tmp, rc); err != nil {
+		tmp.Close()
+		os.Remove(tmp.Name())
+		return "", nil, err
+	}
+	tmp.Close()
+	path := tmp.Name()
+	return path, func() { os.Remove(path) }, nil
 }
 
 // extractMedia 将音频类媒体文件解压到 mediaDir，返回 {原始文件名 -> 本地绝对路径}。

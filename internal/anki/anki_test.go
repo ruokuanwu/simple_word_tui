@@ -101,12 +101,78 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// TestParsePrefersAnki21 验证：当同时存在空占位库 collection.anki2 与真实库
+// collection.anki21 时，应选用 .anki21，否则会导入到空库（0 个单词）。
+func TestParsePrefersAnki21(t *testing.T) {
+	dir := t.TempDir()
+
+	// 空占位库（仅有 notes 表、无数据），模拟旧版兼容桩
+	emptyPath := filepath.Join(dir, "empty.anki2")
+	edb, err := sql.Open("sqlite", emptyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := edb.Exec(`CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	edb.Close()
+
+	// 真实库，含一条 note
+	realPath := filepath.Join(dir, "real.anki21")
+	rdb, err := sql.Open("sqlite", realPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rdb.Exec(`CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rdb.Exec(`INSERT INTO notes(flds) VALUES(?)`, "banana\x1f香蕉"); err != nil {
+		t.Fatal(err)
+	}
+	rdb.Close()
+
+	apkgPath := filepath.Join(dir, "双库.apkg")
+	zf, err := os.Create(apkgPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer zf.Close()
+	zw := zip.NewWriter(zf)
+	writeEntry := func(name, src string) {
+		data, _ := os.ReadFile(src)
+		w, err := zw.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.Write(data); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// 故意让空占位库排在前面
+	writeEntry("collection.anki2", emptyPath)
+	writeEntry("collection.anki21", realPath)
+	mediaJSON, _ := json.Marshal(map[string]string{})
+	mw, _ := zw.Create("media")
+	mw.Write(mediaJSON)
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := Parse(apkgPath, filepath.Join(dir, "media"))
+	if err != nil {
+		t.Fatalf("Parse 失败: %v", err)
+	}
+	if len(res.Words) != 1 || res.Words[0].Term != "banana" {
+		t.Fatalf("应选用 collection.anki21 读到 banana，实际 = %+v", res.Words)
+	}
+}
+
 func TestClean(t *testing.T) {
 	cases := map[string]string{
-		"<b>hello</b>":            "hello",
-		"a&nbsp;b":                "a b",
-		"[sound:x.mp3]word":       "word",
-		"  多   空格 ":               "多 空格",
+		"<b>hello</b>":      "hello",
+		"a&nbsp;b":          "a b",
+		"[sound:x.mp3]word": "word",
+		"  多   空格 ":         "多 空格",
 	}
 	for in, want := range cases {
 		if got := clean(in); got != want {
