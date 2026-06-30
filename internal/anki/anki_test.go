@@ -93,9 +93,11 @@ func TestParse(t *testing.T) {
 	if w.Definition != "n. 苹果" {
 		t.Errorf("Definition = %q, 期望 'n. 苹果'", w.Definition)
 	}
-	// 音频应被解压到 mediaDir
+	// 音频应被解压到 mediaDir/单词本名
 	if w.Audio == "" {
 		t.Error("Audio 为空，期望指向解压后的音频文件")
+	} else if want := filepath.Join(mediaDir, "测试词库", "apple.mp3"); w.Audio != want {
+		t.Errorf("音频路径 = %q, 期望 %q", w.Audio, want)
 	} else if _, err := os.Stat(w.Audio); err != nil {
 		t.Errorf("音频文件未解压: %v", err)
 	}

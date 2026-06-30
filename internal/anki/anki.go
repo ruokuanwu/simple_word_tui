@@ -35,13 +35,15 @@ var (
 )
 
 // Parse 解析指定的 apkg 文件，返回单词本数据。
-// mediaDir 是媒体文件解压到的目标目录（音频会被释放到这里）。
+// mediaDir 是媒体文件根目录（音频会被释放到以单词本名命名的子目录中）。
 func Parse(apkgPath, mediaDir string) (*Result, error) {
 	zr, err := zip.OpenReader(apkgPath)
 	if err != nil {
 		return nil, err
 	}
 	defer zr.Close()
+
+	name := strings.TrimSuffix(filepath.Base(apkgPath), filepath.Ext(apkgPath))
 
 	// 1. 读取 media 映射，建立 {数字文件名 -> 原始文件名}
 	mediaMap, err := readMediaMap(zr)
@@ -56,8 +58,8 @@ func Parse(apkgPath, mediaDir string) (*Result, error) {
 	}
 	defer cleanup()
 
-	// 3. 解压音频媒体文件到 mediaDir，建立 {原始文件名 -> 本地绝对路径}
-	audioPaths, err := extractMedia(zr, mediaMap, mediaDir)
+	// 3. 解压音频媒体文件到当前单词本目录，建立 {原始文件名 -> 本地绝对路径}
+	audioPaths, err := extractMedia(zr, mediaMap, filepath.Join(mediaDir, name))
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +70,6 @@ func Parse(apkgPath, mediaDir string) (*Result, error) {
 		return nil, err
 	}
 
-	name := strings.TrimSuffix(filepath.Base(apkgPath), filepath.Ext(apkgPath))
 	return &Result{Name: name, Words: words}, nil
 }
 

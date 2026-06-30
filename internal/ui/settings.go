@@ -2,6 +2,8 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"simpleword/internal/model"
@@ -41,9 +43,12 @@ func (p settingsPage) loadStatsCmd() tea.Cmd {
 }
 
 func (p settingsPage) deleteDeckCmd() tea.Cmd {
-	s, deckID := p.store, p.deck.ID
+	s, deckID, mediaDir, deckName := p.store, p.deck.ID, p.mediaDir, p.deck.Name
 	return func() tea.Msg {
-		return deckDeletedMsg{err: s.DeleteDeck(deckID)}
+		if err := s.DeleteDeck(deckID); err != nil {
+			return deckDeletedMsg{err: err}
+		}
+		return deckDeletedMsg{err: os.RemoveAll(filepath.Join(mediaDir, deckName))}
 	}
 }
 
