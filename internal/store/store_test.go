@@ -33,6 +33,14 @@ func TestDeckLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	var storedDefinition string
+	if err := s.db.QueryRow(`SELECT definition FROM words WHERE term = ?`, "apple").Scan(&storedDefinition); err != nil {
+		t.Fatal(err)
+	}
+	if storedDefinition != "\x1f苹果\x1f" {
+		t.Errorf("数据库 Definition = %q, 期望用 \\x1f 包围", storedDefinition)
+	}
+
 	decks, err := s.ListDecks()
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +64,9 @@ func TestDeckLifecycle(t *testing.T) {
 	}
 	if len(round) != 2 {
 		t.Fatalf("PickRound = %d, 期望 2", len(round))
+	}
+	if round[0].Definition != "\x1f苹果\x1f" {
+		t.Errorf("读取 Definition = %q, 期望保留 \\x1f 包围", round[0].Definition)
 	}
 	if err := s.MarkMastered(round[0].ID); err != nil {
 		t.Fatal(err)

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"simpleword/internal/audio"
@@ -194,7 +195,7 @@ func (p studyPage) viewStudy() string {
 		if def == "" {
 			def = "（无释义）"
 		}
-		b.WriteString(defStyle.Render(p.visibleDefinition(def)))
+		b.WriteString(p.visibleDefinition(def))
 		if p.maxDefScroll() > 0 {
 			b.WriteString("\n")
 			b.WriteString(mutedStyle.Render(p.defScrollIndicator()))
@@ -235,8 +236,8 @@ func (p studyPage) defViewWidth() int {
 	if p.width <= 0 {
 		return 80
 	}
-	// boxStyle 左右边框 2 + 左右 padding 4，留 2 列避免贴边。
-	w := p.width - 8
+	// 外层 box 左右边框 2 + padding 4，释义虚线框左右边框 2 + padding 2，留 2 列避免贴边。
+	w := p.width - 12
 	if w < 1 {
 		return 1
 	}
@@ -245,13 +246,32 @@ func (p studyPage) defViewWidth() int {
 
 func (p studyPage) definitionLines(def string) []string {
 	var lines []string
-	for _, line := range strings.Split(def, "\n") {
-		lines = append(lines, p.wrapLine(line)...)
+	for _, part := range p.definitionParts(def) {
+		var partLines []string
+		for _, line := range strings.Split(part, "\n") {
+			partLines = append(partLines, p.wrapLine(line)...)
+		}
+		boxed := defBoxStyle.Render(defStyle.Render(strings.Join(partLines, "\n")))
+		lines = append(lines, strings.Split(boxed, "\n")...)
 	}
 	if len(lines) == 0 {
 		return []string{""}
 	}
 	return lines
+}
+
+func (p studyPage) definitionParts(def string) []string {
+	var parts []string
+	for _, part := range strings.Split(def, "\x1f") {
+		if part != "" {
+			parts = append(parts, part)
+		}
+	}
+	slices.SortFunc(parts, func(a, b string) int {
+		return len(a) - len(b)
+	})
+	return parts
+
 }
 
 func (p studyPage) wrapLine(line string) []string {

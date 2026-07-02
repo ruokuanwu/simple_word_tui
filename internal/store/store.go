@@ -3,6 +3,7 @@ package store
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	"simpleword/internal/model"
@@ -14,6 +15,8 @@ import (
 type Store struct {
 	db *sql.DB
 }
+
+const definitionSep = "\x1f"
 
 // Open 打开（并初始化）指定路径的 SQLite 数据库。
 func Open(path string) (*Store, error) {
@@ -125,7 +128,7 @@ func (s *Store) AddWords(deckID int64, words []model.Word) error {
 	}
 	defer stmt.Close()
 	for _, w := range words {
-		if _, err := stmt.Exec(deckID, w.Term, w.Phonetic, w.Definition, w.Audio); err != nil {
+		if _, err := stmt.Exec(deckID, w.Term, w.Phonetic, encodeDefinition(w.Definition), w.Audio); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -187,4 +190,11 @@ func scanWords(rows *sql.Rows) ([]model.Word, error) {
 		words = append(words, w)
 	}
 	return words, rows.Err()
+}
+
+func encodeDefinition(def string) string {
+	if def == "" || strings.HasPrefix(def, definitionSep) && strings.HasSuffix(def, definitionSep) {
+		return def
+	}
+	return definitionSep + def + definitionSep
 }

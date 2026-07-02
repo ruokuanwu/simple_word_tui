@@ -17,6 +17,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/jaytaylor/html2text"
+
 	"simpleword/internal/model"
 
 	_ "modernc.org/sqlite"
@@ -245,7 +247,7 @@ func fieldsToWord(fields []string, audioPaths map[string]string) model.Word {
 		}
 		defParts = append(defParts, text)
 	}
-	w.Definition = strings.Join(defParts, "\n")
+	w.Definition = strings.Join(defParts, "\x1f")
 	return w
 }
 
@@ -281,11 +283,12 @@ func isPhonetic(s string) bool {
 // clean 去除 HTML 标签、sound 标签并规整空白。
 func clean(s string) string {
 	s = soundTag.ReplaceAllString(s, "")
-	s = htmlTag.ReplaceAllString(s, " ")
-	s = strings.ReplaceAll(s, "&nbsp;", " ")
-	s = strings.ReplaceAll(s, "&amp;", "&")
-	s = strings.ReplaceAll(s, "&lt;", "<")
-	s = strings.ReplaceAll(s, "&gt;", ">")
+	text, err := html2text.FromString(s, html2text.Options{OmitLinks: true})
+	if err == nil {
+		s = text
+	}
+	s = strings.ReplaceAll(s, "*", "")
+	s = strings.ReplaceAll(s, "\u00a0", " ")
 	s = spaceRe.ReplaceAllString(s, " ")
 	return strings.TrimSpace(s)
 }

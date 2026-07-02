@@ -37,6 +37,20 @@ var (
 	defStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252"))
 
+	defBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.Border{
+			Top:         "╌",
+			Bottom:      "╌",
+			Left:        "┆",
+			Right:       "┆",
+			TopLeft:     "┌",
+			TopRight:    "┐",
+			BottomLeft:  "└",
+			BottomRight: "┘",
+		}).
+		BorderForeground(colorMuted).
+		Padding(0, 1)
+
 	okStyle = lipgloss.NewStyle().
 		Foreground(colorOK).
 		Bold(true)
