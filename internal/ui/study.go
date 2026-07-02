@@ -99,8 +99,13 @@ func (p studyPage) handleStudyKey(msg tea.KeyMsg) (page, tea.Cmd) {
 	case "esc", "q":
 		return p, navigate(newDeckListPage(p.common))
 	case "s": // 查看完整释义
+		cur := p.round[p.roundIdx]
+		s := p.store
+		cmd := func() tea.Msg { s.MarkUnmastered(cur.ID); return nil }
+		p.round[p.roundIdx].Mastered = false
 		p.showDef = true
 		p.defScroll = 0
+		return p, cmd
 	case "up", "k": // 释义向上滚动
 		if p.showDef && p.defScroll > 0 {
 			p.defScroll--
@@ -117,6 +122,9 @@ func (p studyPage) handleStudyKey(msg tea.KeyMsg) (page, tea.Cmd) {
 			return p, p.playCurrentCmd()
 		}
 	case "d": // 掌握，进入下一个
+		if p.showDef {
+			return p.advance(nil)
+		}
 		cur := p.round[p.roundIdx]
 		s := p.store
 		cmd := func() tea.Msg { s.MarkMastered(cur.ID); return nil }

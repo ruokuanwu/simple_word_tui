@@ -172,6 +172,12 @@ func (s *Store) MarkMastered(wordID int64) error {
 	return err
 }
 
+// MarkUnmastered 将单词标记为未掌握。
+func (s *Store) MarkUnmastered(wordID int64) error {
+	_, err := s.db.Exec(`UPDATE words SET mastered = 0 WHERE id = ?`, wordID)
+	return err
+}
+
 // scanWords 将查询结果扫描为 Word 切片。
 func scanWords(rows *sql.Rows) ([]model.Word, error) {
 	var words []model.Word
