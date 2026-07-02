@@ -65,19 +65,19 @@ func (p deckListPage) handleKey(msg tea.KeyMsg) (page, tea.Cmd) {
 	switch msg.String() {
 	case "q":
 		return p, tea.Quit
-	case "up", "k":
+	case "up", "k", "w":
 		if p.cursor > 0 {
 			p.cursor--
 		}
-	case "down", "j":
+	case "down", "j", "s":
 		if p.cursor < maxIdx {
 			p.cursor++
 		}
-	case " ": // 空格：进入背单词
+	case " ", "d": // 空格/d：进入背单词
 		if p.cursor < len(p.decks) {
 			return p, navigate(newStudyPage(p.common, p.decks[p.cursor]))
 		}
-	case "enter":
+	case "enter", "f":
 		if p.cursor == maxIdx {
 			return p, navigate(newImportPage(p.common))
 		}
@@ -118,7 +118,7 @@ func (p deckListPage) View() string {
 		b.WriteString("\n" + okStyle.Render(p.status))
 	}
 
-	help := "↑/↓ 选择 · 空格 背单词 · enter 设置/导入 · q 退出"
+	help := "w/s 选择 · d 背单词 · f 设置/导入 · q 退出"
 	b.WriteString(helpStyle.Render("\n" + help))
 	return p.center(p.box().Render(b.String()))
 }

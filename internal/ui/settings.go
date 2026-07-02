@@ -86,15 +86,15 @@ func (p settingsPage) handleKey(msg tea.KeyMsg) (page, tea.Cmd) {
 	switch msg.String() {
 	case "esc", "q":
 		return p, navigate(newDeckListPage(p.common))
-	case "up", "k":
+	case "up", "k", "w":
 		if p.cursor > 0 {
 			p.cursor--
 		}
-	case "down", "j":
+	case "down", "j", "s":
 		if p.cursor < 1 {
 			p.cursor++
 		}
-	case "enter", " ":
+	case "enter", " ", "f":
 		if p.cursor == 0 {
 			return p, navigate(newStudyPage(p.common, p.deck))
 		}
@@ -105,9 +105,9 @@ func (p settingsPage) handleKey(msg tea.KeyMsg) (page, tea.Cmd) {
 
 func (p settingsPage) handleConfirmKey(msg tea.KeyMsg) (page, tea.Cmd) {
 	switch msg.String() {
-	case "y", "enter":
+	case "y", "enter", "f", "d":
 		return p, p.deleteDeckCmd()
-	case "n", "esc", "q":
+	case "n", "esc", "q", "a":
 		p.confirming = false
 	}
 	return p, nil
@@ -147,7 +147,7 @@ func (p settingsPage) viewSettings() string {
 		b.WriteString("\n")
 	}
 
-	b.WriteString(helpStyle.Render("\n↑/↓ 选择 · enter 确认 · esc 返回"))
+	b.WriteString(helpStyle.Render("\nw/s 选择 · f 确认 · q 返回"))
 	return p.center(p.box().Render(b.String()))
 }
 
@@ -159,6 +159,6 @@ func (p settingsPage) viewDeleteConfirm() string {
 	b.WriteString("\n")
 	b.WriteString(mutedStyle.Render("此操作不可恢复。"))
 	b.WriteString("\n\n")
-	b.WriteString(mutedStyle.Render("y 确认删除 · n 取消"))
+	b.WriteString(mutedStyle.Render("f/d 确认删除 · q/a 取消"))
 	return p.center(p.box().Render(b.String()))
 }

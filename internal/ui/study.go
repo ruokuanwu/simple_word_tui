@@ -106,11 +106,11 @@ func (p studyPage) handleStudyKey(msg tea.KeyMsg) (page, tea.Cmd) {
 		p.showDef = true
 		p.defScroll = 0
 		return p, cmd
-	case "up", "k": // 释义向上滚动
+	case "up", "k", "w": // 释义向上滚动
 		if p.showDef && p.defScroll > 0 {
 			p.defScroll--
 		}
-	case "down", "j": // 释义向下滚动
+	case "down", "j", "x": // 释义向下滚动
 		if p.showDef && p.defScroll < p.maxDefScroll() {
 			p.defScroll++
 		}
@@ -130,7 +130,7 @@ func (p studyPage) handleStudyKey(msg tea.KeyMsg) (page, tea.Cmd) {
 		cmd := func() tea.Msg { s.MarkMastered(cur.ID); return nil }
 		p.round[p.roundIdx].Mastered = true
 		return p.advance(cmd)
-	case " ", "enter": // 仍需复习，进入下一个（不标记掌握）
+	case " ", "enter", "f": // 仍需复习，进入下一个（不标记掌握）
 		return p.advance(nil)
 	}
 	return p, nil
@@ -155,10 +155,10 @@ func (p studyPage) advance(extra tea.Cmd) (page, tea.Cmd) {
 
 func (p studyPage) handleCongratsKey(msg tea.KeyMsg) (page, tea.Cmd) {
 	switch msg.String() {
-	case "enter", "y", " ": // 继续学习：拉取下一轮
+	case "enter", "y", " ", "f", "d": // 继续学习：拉取下一轮
 		p.done = false
 		return p, p.loadRoundCmd()
-	case "esc", "n", "q": // 返回主界面
+	case "esc", "n", "q", "a": // 返回主界面
 		return p, navigate(newDeckListPage(p.common))
 	}
 	return p, nil
@@ -212,7 +212,7 @@ func (p studyPage) viewStudy() string {
 		b.WriteString(mutedStyle.Render("按 s 查看释义"))
 	}
 
-	help := "d 掌握 · s 释义 · ↑/↓ 滚动 · a 上一个 · 空格 跳过 · esc 返回"
+	help := "d 掌握 · s 释义 · w/x 滚动 · a 上一个 · f 跳过 · q 返回"
 	b.WriteString(helpStyle.Render("\n\n" + help))
 	return p.center(p.box().Render(b.String()))
 }
@@ -223,7 +223,7 @@ func (p studyPage) viewCongrats() string {
 	b.WriteString("\n\n")
 	b.WriteString(normalStyle.Render("是否继续学习下一轮？"))
 	b.WriteString("\n\n")
-	b.WriteString(mutedStyle.Render("enter 继续学习 · esc 返回主界面"))
+	b.WriteString(mutedStyle.Render("f/d 继续学习 · q/a 返回主界面"))
 	return p.center(congratsBox.Render(b.String()))
 }
 

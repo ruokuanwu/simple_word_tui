@@ -70,9 +70,9 @@ func (p importPage) Update(msg tea.Msg) (page, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "esc":
+		case "esc", "ctrl+q":
 			return p, navigate(newDeckListPage(p.common))
-		case "enter":
+		case "enter", "ctrl+d":
 			path := strings.TrimSpace(p.input.Value())
 			if path == "" {
 				return p, nil
@@ -95,6 +95,6 @@ func (p importPage) View() string {
 	if p.status != "" {
 		b.WriteString("\n\n" + mutedStyle.Render(p.status))
 	}
-	body := p.withBottom(b.String(), "enter 确认导入 · esc 取消")
+	body := p.withBottom(b.String(), "ctrl+d 确认导入 · ctrl+q 取消")
 	return p.center(p.box().Render(body))
 }
